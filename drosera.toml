@@ -5,10 +5,10 @@ drosera_address = "0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D"
 
 [traps]
 
-[traps.high_transfer]
-path = "out/HighTransferTrap.sol/HighTransferTrap.json"
+[traps.high_balance_drop]
+path = "out/HighBalanceDropTrap.sol/HighBalanceDropTrap.json"
 response_contract = "0xf36616ad8F2D7668D587Ca0dcE5c08492B30465D"
-response_function = "respondToHighTransfer(address,uint256,uint256,uint256)"
+response_function = "respondToBalanceDrop(bytes)"
 cooldown_period_blocks = 33
 min_number_of_operators = 1
 max_number_of_operators = 2
