@@ -1,27 +1,62 @@
-High Transfer Trap
-The HighTransferTrap is a Drosera Trap that monitors ERC20 token transfers on a specific token contract and triggers whenever a transfer exceeds a defined threshold — indicating a potential large whale movement or high-value transaction.
+#  🧠 HighBalanceDropTrap
+
+HighBalanceDropTrap is a Drosera trap that detects large token balance drops across one or more monitored holders.
+It helps identify whales exiting positions, suspicious fund movements, or massive token sells.
+
+⚙️ Overview
+
+This trap maintains snapshots of tracked holders’ balances for a target ERC20 token.
+Between two runs, it compares the new balances to the previous ones and triggers a response if the balance drop exceeds a configured threshold (absolute or relative).
 
 ---
 
-📖 Overview
-This trap continuously checks recent token transfers for unusually large movements.
-It’s useful for tracking whale activity, monitoring liquidity shifts, or detecting suspicious large sends.
+## 📦 Prerequisites
 
----
+1. Install sudo and other pre-requisites :
+```bash
+apt update && apt install -y sudo && sudo apt-get update && sudo apt-get upgrade -y && sudo apt install curl ufw iptables build-essential git wget lz4 jq make gcc nano automake autoconf tmux htop nvme-cli libgbm1 pkg-config libssl-dev libleveldb-dev tar clang bsdmainutils ncdu unzip libleveldb-dev -y
+```
+3. Install environment requirements:
+Drosera Cli
+```bash
+curl -L https://app.drosera.io/install | bash
+source /root/.bashrc
+droseraup
+```
+Foundry cli
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+source /root/.bashrc
+foundryup
+```
+Bun
+```bash
+curl -fsSL https://bun.sh/install | bash
+source /root/.bashrc
+```
+   
 
-⚙️ Contract Details
-| Constant | Description | Example |
-|-----------|--------------|----------|
-| TOKEN | The ERC20 token to monitor | 0xB114f9632425aa6fD0F0415d218848Ec4EFA30C8 (Hoodi) |
-| THRESHOLD | The minimum transfer amount to trigger an alert | 1,000,000 * 10**18 |
+## ⚙️ Setup
 
----
+Clone this repository
 
-🧩 Functions
-collect()
-Fetches the most recent large transfer event from the token.
-Encodes the sender, recipient, and amount into bytes for Drosera’s data aggregation.
+```bash
+git clone https://github.com/staboi170/whale-sell-trap
+cd whale-sell-trap
+```
+Compile contract
 
-shouldRespond()
-Analyzes the collected transfer data to determine if any transaction exceeds the defined THRESHOLD.
-If so, it signals that a response action should be triggered.
+```bash
+forge build
+```
+Whitelist wallet address
+```bash
+nano drosera.toml
+# Put your EVM public address funded with hoodi ETH in whitelist
+e.g ["0xedj..."]  
+```
+Deploy the trap
+```bash
+DROSERA_PRIVATE_KEY=xxx drosera apply
+```
+ Replace xxx with your EVM wallet privatekey (Ensure it's funded with Hoodi ETH, you can claim 1E from hoodifaucet.io)
