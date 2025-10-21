@@ -3,31 +3,29 @@ pragma solidity ^0.8.20;
 
 import {ITrap} from "./interfaces/ITrap.sol";
 
-interface IERC20 { 
+interface IERC20 {
     function balanceOf(address) external view returns (uint256);
 }
 
+/// @title HighBalanceDropTrap
+/// @notice Detects large balance drops for key holders of a token
 contract HighBalanceDropTrap is ITrap {
-    // === CONFIGURATION ===
     address public constant TOKEN = 0x7728A33EBEBCfa852cf7f7Fc377BfC87C24a701A;
-
-    // Threshold: alert if any tracked holder’s balance drops by >= 1,000,000 tokens
     uint256 public constant THRESHOLD = 1_000_000 * 1e18;
 
     address public constant HOLDER_1 = 0xA17187De490dB5F7160822dA197bcAc39d64baCb;
     address public constant HOLDER_2 = 0x1111111111111111111111111111111111111111;
     address public constant HOLDER_3 = 0x2222222222222222222222222222222222222222;
 
-    // === DATA COLLECTION ===
+    // --- COLLECT ---
     function collect() external view override returns (bytes memory) {
         uint256 b1; uint256 b2; uint256 b3;
 
-        // try/catch so collect() never reverts — ensures safety in dryrun
-        try IERC20(TOKEN).balanceOf(HOLDER_1) returns (uint256 v) { b1 = v; } catch {}
-        try IERC20(TOKEN).balanceOf(HOLDER_2) returns (uint256 v) { b2 = v; } catch {}
-        try IERC20(TOKEN).balanceOf(HOLDER_3) returns (uint256 v) { b3 = v; } catch {}
+        // try/catch to prevent revert
+        try IERC20(TOKEN).balanceOf(HOLDER_1) returns (uint256 v1) { b1 = v1; } catch {}
+        try IERC20(TOKEN).balanceOf(HOLDER_2) returns (uint256 v2) { b2 = v2; } catch {}
+        try IERC20(TOKEN).balanceOf(HOLDER_3) returns (uint256 v3) { b3 = v3; } catch {}
 
-        // encode with context for responder usability
         return abi.encode(
             TOKEN,
             HOLDER_1, b1,
@@ -38,7 +36,7 @@ contract HighBalanceDropTrap is ITrap {
         );
     }
 
-    // === RESPONSE DECISION ===
+    // --- RESPOND ---
     function shouldRespond(bytes[] calldata data)
         external
         pure
@@ -47,6 +45,7 @@ contract HighBalanceDropTrap is ITrap {
     {
         if (data.length < 2) return (false, "");
 
+        // Decode the two most recent samples
         (
             address token_new,
             address h1_new, uint256 b1_new,
@@ -56,7 +55,7 @@ contract HighBalanceDropTrap is ITrap {
             uint256 blk_new
         ) = abi.decode(
             data[0],
-            (address,address,uint256,address,uint256,address,uint256,uint64,uint256)
+            (address, address, uint256, address, uint256, address, uint256, uint64, uint256)
         );
 
         (
@@ -64,17 +63,18 @@ contract HighBalanceDropTrap is ITrap {
             address h1_prev, uint256 b1_prev,
             address h2_prev, uint256 b2_prev,
             address h3_prev, uint256 b3_prev,
-            /* ts_prev */, /* blk_prev */
+            /* uint64 ts_prev */,
+            /* uint256 blk_prev */
         ) = abi.decode(
             data[1],
-            (address,address,uint256,address,uint256,address,uint256,uint64,uint256)
+            (address, address, uint256, address, uint256, address, uint256, uint64, uint256)
         );
 
-        // sanity: token and holder set must match
+        // Sanity checks
         if (token_new != token_prev) return (false, "");
         if (h1_new != h1_prev || h2_new != h2_prev || h3_new != h3_prev) return (false, "");
 
-        // detect largest balance drop and return alert payload
+        // Detect large drops
         if (b1_prev > b1_new && (b1_prev - b1_new) >= THRESHOLD) {
             return (true, abi.encode(token_new, h1_new, b1_prev, b1_new, b1_prev - b1_new, blk_new, ts_new));
         }
